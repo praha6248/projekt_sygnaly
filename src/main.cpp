@@ -55,6 +55,43 @@ wave square(int f, int fs, int num_periods) {
     return square;
 }
 
+std::vector<std::complex<double>> DFT(const wave& input_wave) {
+    int N = input_wave.y.size();
+    std::vector<std::complex<double>> X(N);
+    for (int k = 0; k < N; ++k) {
+        std::complex<double> sum = 0.0;
+        for (int n = 0; n < N; ++n) {
+            double angle = -2 * 3.14 * k * n / N;
+            sum += input_wave.y[n] * std::complex<double>(std::cos(angle), std::sin(angle));
+        }
+        X[k] = sum;
+    }
+    return X;
+}
+
+std::vector<double> magnitude(const std::vector<std::complex<double>>& vec) {
+    std::vector<double> mag;
+    for (const auto& val : vec) {
+        mag.push_back(std::abs(val));
+    }
+    return mag;
+}
+
+void plot_dft(const wave& input_wave) {
+    std::vector<std::complex<double>> dft_result = DFT(input_wave);
+    std::vector<double> dft_magnitude = magnitude(dft_result);
+    std::vector<double> dft_freq;
+    int N = dft_result.size();
+    for (int k = 0; k < N; ++k) {
+        dft_freq.push_back(static_cast<double>(k) / N);
+    }
+    matplot::plot(dft_freq, dft_magnitude);
+    matplot::title("Magnitude of DFT Coefficients");
+    matplot::xlabel("Normalized Frequency");
+    matplot::ylabel("Magnitude");
+    matplot::show();
+}
+
 void plot_sinus( double frequency) {
     wave sine = sinus(frequency);
     matplot::ylabel("amplituda");
@@ -115,9 +152,19 @@ void visualize_audio(const std::string& audioFilePath) {
 namespace py = pybind11;
 
 PYBIND11_MODULE(cmake_example, m) {
+    py::class_<wave>(m, "wave")
+        .def(py::init<>())
+        .def_readwrite("x", &wave::x)
+        .def_readwrite("y", &wave::y);
+
     m.def("plot_sin", &plot_sinus, "sinus(x)");
     m.def("plot_cos", &plot_cosinus, "cosinus(x)");
     m.def("visualize", &visualize_audio, "visualisation");
     m.def("plot_sawtooth", &plot_sawtooth, "plot_sawtooth");
     m.def("plot_square", &plot_square, "square");
+    m.def("sawtooth", &sawtooth, "sawtooth");
+    m.def("square", &square, "square");
+    m.def("sin", &sinus, "sinus(x)");
+    m.def("cos", &cosinus, "cosinus(x)");
+    m.def("dft", &plot_dft, "dft");
 }
