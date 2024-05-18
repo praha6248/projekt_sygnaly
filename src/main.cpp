@@ -59,16 +59,14 @@ void plot_sawtooth(int f, int fs, int num_periods) {
     matplot::show();
 }
 
-void square(double amplitude, double period) {
+void square(int f, int fs, int num_periods) {
     std::vector<double> x;
-    std::vector<double> sawtooth;
-    for (int i = 0; i < 628; i++) {
-        x.push_back(static_cast<double>(i) / 314);
-        sawtooth.push_back(amplitude * (2 * (x[i] / period - std::floor(x[i] / period + 0.5))));
-    }
     std::vector<double> square;
-    for (int i = 0; i < sawtooth.size(); i++) {
-        square.push_back((sawtooth[i] >= 0) ? 1 : -1);
+    for (int p = 0; p < num_periods; ++p) {
+        for (int i = 0; i < fs; ++i) {
+            x.push_back(static_cast<double>(i + p * fs) / fs);
+            square.push_back(i < fs / 2 ? -32768 : 32768);
+        }
     }
     matplot::plot(x, square)->color({ 1.0f, 0.08f, 0.58f });
     matplot::xlabel("nr próbki");
