@@ -1,5 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <matplot/matplot.h>
+#include <pybind11/stl.h>
+#include <pybind11/complex.h>
 #include "AudioFile.h"
 #include <vector>
 #include <cmath>
@@ -67,6 +69,33 @@ std::vector<std::complex<double>> DFT(const wave& input_wave) {
         X[k] = sum;
     }
     return X;
+}
+std::vector<double> idft(const std::vector<std::complex<double>>& X) {
+    int N = X.size();
+    std::vector<double> x(N);
+    for (int n = 0; n < N; ++n) {
+        std::complex<double> sum = 0.0;
+        for (int k = 0; k < N; ++k) {
+            double angle = 2 * 3.14 * k * n / N;
+            sum += X[k] * std::exp(std::complex<double>(0, angle));
+        }
+        x[n] = std::real(sum) / N;
+    }
+
+    return x;
+}
+
+void plot_idft(const std::vector<std::complex<double>>& X) {
+    std::vector<double> time_domain_signal = idft(X);
+    std::vector<double> x(time_domain_signal.size());
+    for (size_t i = 0; i < x.size(); ++i) {
+        x[i] = static_cast<double>(i);
+    }
+    matplot::plot(x, time_domain_signal);
+    matplot::title("Time-Domain Signal (Inverse DFT)");
+    matplot::xlabel("Sample Index");
+    matplot::ylabel("Amplitude");
+    matplot::show();
 }
 
 std::vector<double> magnitude(const std::vector<std::complex<double>>& vec) {
@@ -167,4 +196,6 @@ PYBIND11_MODULE(cmake_example, m) {
     m.def("sin", &sinus, "sinus(x)");
     m.def("cos", &cosinus, "cosinus(x)");
     m.def("dft", &plot_dft, "dft");
+    m.def("idft", &plot_idft, "idft");
+    m.def("DFT", &DFT, "DFT");
 }

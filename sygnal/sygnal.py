@@ -6,3 +6,5 @@ import cmake_example as lib
 #lib.plot_square(1, 45, 5)
 sine_wave=lib.square(1,45,5)
 lib.dft(sine_wave)
+sine_wave=lib.DFT(sine_wave)
+lib.idft(sine_wave)
