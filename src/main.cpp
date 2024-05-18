@@ -4,71 +4,85 @@
 #include <vector>
 #include <cmath>
 
-int add(int i, int j) {
-    return i + j;
-}
+struct wave {
+    std::vector<double>x;
+    std::vector<double>y;
+};
 
-void sinus(double frequency) {
-
-    std::vector<double> x;
-    std::vector<double> y;
-
+wave sinus(double frequency) {
+    wave sinus;
     for (int i = 0; i < 628; i++)
     {
-        x.push_back(static_cast<double>(i) / 314);
-        y.push_back(std::sin(3.14 * frequency * x[i]));
+        sinus.x.push_back(static_cast<double>(i) / 314);
+        sinus.y.push_back(std::sin(3.14 * frequency * sinus.x[i]));
     }
+    return sinus;
+}
+wave cosinus(double frequency) {
+    wave cosinus;
+    for (int i = 0; i < 628; i++)
+    {
+        cosinus.x.push_back(static_cast<double>(i) / 314);
+        cosinus.y.push_back(std::cos(3.14 * frequency * cosinus.x[i]));
+    }
+    return cosinus;
+}
+
+wave sawtooth(int f, int fs, int num_periods) {
+    wave sawtooth;
+    double step = (2.0 * 32768) / (fs * f);
+    double amplitude = 0;
+    for (int p = 0; p < num_periods; ++p) {
+        for (int i = 0; i < fs; ++i) {
+            sawtooth.x.push_back(static_cast<double>(i + p * fs) / fs);
+            sawtooth.y.push_back(amplitude);
+            amplitude += step;
+            if (amplitude >= 32768)
+                amplitude -= 65536;
+        }
+    }
+    return sawtooth;
+}
+
+wave square(int f, int fs, int num_periods) {
+    wave square;
+    for (int p = 0; p < num_periods; ++p) {
+        for (int i = 0; i < fs; ++i) {
+            square.x.push_back(static_cast<double>(i + p * fs) / fs);
+            square.y.push_back(i < fs / 2 ? -32768 : 32768);
+        }
+    }
+    return square;
+}
+
+void plot_sinus( double frequency) {
+    wave sine = sinus(frequency);
     matplot::ylabel("amplituda");
     matplot::title("Sygna³ sinusoidalny");
-    matplot::plot(x, y)->color({ 1.0f, 0.08f, 0.58f });
+    matplot::plot(sine.x, sine.y)->color({ 1.0f, 0.08f, 0.58f });
     matplot::show();
 }
 
-void cosinus(double frequency) {
-    std::vector<double> x;
-    std::vector<double> y;
-    for (int i = 0; i < 628; i++)
-    {
-        x.push_back(static_cast<double>(i) / 314);
-        y.push_back(std::cos(3.14 * frequency * x[i]));
-    }
+void plot_cosinus(double frequency) {
+    wave cosine = cosinus(frequency);
     matplot::ylabel("amplituda");
     matplot::title("Sygna³ cosinusoidalny");
-    matplot::plot(x, y)->color({ 1.0f, 0.08f, 0.58f });;
+    matplot::plot(cosine.x, cosine.y)->color({ 1.0f, 0.08f, 0.58f });;
     matplot::show();
 }
 
 void plot_sawtooth(int f, int fs, int num_periods) {
-    double step = (2.0 * 32768) / (fs * f);
-    std::vector<double> x;
-    std::vector<double> sawtooth;
-    double amplitude = 0;
-    for (int p = 0; p < num_periods; ++p) {
-        for (int i = 0; i < fs; ++i) {
-            x.push_back(static_cast<double>(i + p * fs) / fs);
-            sawtooth.push_back(amplitude);
-            amplitude += step;
-            if (amplitude >= 32768)
-                amplitude -=65536 ;
-        }
-    }
-    matplot::plot(x, sawtooth)->color({ 1.0f, 0.08f, 0.58f });
+    wave saw = sawtooth(f, fs, num_periods);
+    matplot::plot(saw.x, saw.y)->color({ 1.0f, 0.08f, 0.58f });
     matplot::xlabel("nr próbki");
     matplot::ylabel("amplituda");
     matplot::title("Sygna³ pi³okszta³tny");
     matplot::show();
 }
 
-void square(int f, int fs, int num_periods) {
-    std::vector<double> x;
-    std::vector<double> square;
-    for (int p = 0; p < num_periods; ++p) {
-        for (int i = 0; i < fs; ++i) {
-            x.push_back(static_cast<double>(i + p * fs) / fs);
-            square.push_back(i < fs / 2 ? -32768 : 32768);
-        }
-    }
-    matplot::plot(x, square)->color({ 1.0f, 0.08f, 0.58f });
+void plot_square(int f, int fs, int num_periods) {
+    wave sq = square(f, fs, num_periods);
+    matplot::plot(sq.x, sq.y)->color({ 1.0f, 0.08f, 0.58f });
     matplot::xlabel("nr próbki");
     matplot::ylabel("amplituda");
     matplot::title("Sygna³ prostok¹tny");
@@ -101,16 +115,9 @@ void visualize_audio(const std::string& audioFilePath) {
 namespace py = pybind11;
 
 PYBIND11_MODULE(cmake_example, m) {
-    
-
-    m.def("add", &add, R"pbdoc(
-        Add two numbers
-
-        Some other explanation about the add function.
-    )pbdoc");
-    m.def("sin", &sinus, "sinus(x)");
-    m.def("cos", &cosinus, "cosinus(x)");
+    m.def("plot_sin", &plot_sinus, "sinus(x)");
+    m.def("plot_cos", &plot_cosinus, "cosinus(x)");
     m.def("visualize", &visualize_audio, "visualisation");
     m.def("plot_sawtooth", &plot_sawtooth, "plot_sawtooth");
-    m.def("square", &square, "square");
+    m.def("plot_square", &plot_square, "square");
 }
