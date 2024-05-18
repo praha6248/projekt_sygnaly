@@ -40,23 +40,22 @@ void cosinus(double frequency) {
 
 void plot_sawtooth(int f, int fs, int num_periods) {
     double step = (2.0 * 32768) / (fs * f);
-    double amplitude = 0;
     std::vector<double> x;
     std::vector<double> sawtooth;
+    double amplitude = 0;
     for (int p = 0; p < num_periods; ++p) {
-        double amplitude = 0;
         for (int i = 0; i < fs; ++i) {
             x.push_back(static_cast<double>(i + p * fs) / fs);
             sawtooth.push_back(amplitude);
             amplitude += step;
             if (amplitude >= 32768)
-                amplitude -= 65536;
+                amplitude -=65536 ;
         }
     }
     matplot::plot(x, sawtooth)->color({ 1.0f, 0.08f, 0.58f });
     matplot::xlabel("nr próbki");
     matplot::ylabel("amplituda");
-    matplot::title("Sygna³ pi³okszta³tny"); 
+    matplot::title("Sygna³ pi³okszta³tny");
     matplot::show();
 }
 
