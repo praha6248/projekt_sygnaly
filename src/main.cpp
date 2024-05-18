@@ -115,9 +115,13 @@ void visualize_audio(const std::string& audioFilePath) {
 namespace py = pybind11;
 
 PYBIND11_MODULE(cmake_example, m) {
-    m.def("plot_sin", &plot_sinus, "sinus(x)");
-    m.def("plot_cos", &plot_cosinus, "cosinus(x)");
+    m.def("plot_sin", &plot_sinus, "plot_sinus(x)");
+    m.def("plot_cos", &plot_cosinus, "plot_cosinus(x)");
     m.def("visualize", &visualize_audio, "visualisation");
     m.def("plot_sawtooth", &plot_sawtooth, "plot_sawtooth");
-    m.def("plot_square", &plot_square, "square");
+    m.def("plot_square", &plot_square, "plot_square");
+    m.def("sawtooth", &sawtooth, "sawtooth");
+    m.def("square", &square, "square");
+    m.def("sin", &sinus, "sinus(x)");
+    m.def("cos", &cosinus, "cosinus(x)");
 }
