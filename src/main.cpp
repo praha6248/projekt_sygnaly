@@ -96,11 +96,6 @@ wave IDFT(const wave& input_wave) {
         }
         output_wave.y[n] = std::real(sum) / N;
     }
-    std::vector<double> x_axis(N);
-    for (size_t i = 0; i < x_axis.size(); ++i) {
-        x_axis[i] = static_cast<double>(i);
-    }
-    output_wave.x = x_axis;
     return output_wave;
 }
 
