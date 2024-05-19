@@ -15,10 +15,13 @@
 struct wave {
     std::vector<double>x;
     std::vector<double>y;
+    std::string name;
+    wave(const std::string& name) : name(name) {}
+    wave() : name("wave") {}
 };
 
 wave sinus(double frequency) {
-    wave sinus;
+    wave sinus("sin");
     for (int i = 0; i < 628; i++)
     {
         sinus.x.push_back(static_cast<double>(i) / 314);
@@ -27,7 +30,7 @@ wave sinus(double frequency) {
     return sinus;
 }
 wave cosinus(double frequency) {
-    wave cosinus;
+    wave cosinus("cos");
     for (int i = 0; i < 628; i++)
     {
         cosinus.x.push_back(static_cast<double>(i) / 314);
@@ -37,7 +40,7 @@ wave cosinus(double frequency) {
 }
 
 wave sawtooth(int f, int fs, int num_periods) {
-    wave sawtooth;
+    wave sawtooth("sawtooth");
     double step = (2.0 * 32768) / (fs * f);
     double amplitude = 0;
     for (int p = 0; p < num_periods; ++p) {
@@ -53,7 +56,7 @@ wave sawtooth(int f, int fs, int num_periods) {
 }
 
 wave square(int f, int fs, int num_periods) {
-    wave square;
+    wave square("square");
     for (int p = 0; p < num_periods; ++p) {
         for (int i = 0; i < fs; ++i) {
             square.x.push_back(static_cast<double>(i + p * fs) / fs);
@@ -63,8 +66,11 @@ wave square(int f, int fs, int num_periods) {
     return square;
 }
 
-std::vector<std::complex<double>> DFT(const wave& input_wave) {
+wave DFT(const wave& input_wave) {
     int N = input_wave.y.size();
+    wave output_wave("DFT"+input_wave.name);
+    output_wave.x = input_wave.x;
+    output_wave.y.resize(N);
     std::vector<std::complex<double>> X(N);
     for (int k = 0; k < N; ++k) {
         std::complex<double> sum = 0.0;
@@ -73,94 +79,37 @@ std::vector<std::complex<double>> DFT(const wave& input_wave) {
             sum += input_wave.y[n] * std::exp(std::complex<double>(0, angle));
         }
         X[k] = sum;
+        output_wave.y[k] = std::abs(sum);
     }
-    return X;
+    return output_wave;
 }
 
-std::vector<double> IDFT(const std::vector<std::complex<double>>& X) {
-    int N = X.size();
-    std::vector<double> x(N);
+wave IDFT(const wave& input_wave) {
+    int N = input_wave.y.size();
+    wave output_wave("IDFT");
+    output_wave.x.resize(N);
+    output_wave.y.resize(N);
+
     for (int n = 0; n < N; ++n) {
         std::complex<double> sum = 0.0;
         for (int k = 0; k < N; ++k) {
             double angle = 2 * M_PI * k * n / N;
-            sum += X[k] * std::exp(std::complex<double>(0, angle));
+            sum += std::complex<double>(input_wave.y[k]) * std::exp(std::complex<double>(0, angle));
         }
-        x[n] = std::real(sum) / N;
+        output_wave.x[n] = input_wave.x[n];
+        output_wave.y[n] = std::real(sum) / N;
     }
 
-    return x;
+    return output_wave;
 }
 
-void plot_idft(const std::vector<std::complex<double>>& X) {
-    std::vector<double> time_domain_signal = IDFT(X);
-    std::vector<double> x(time_domain_signal.size());
-    for (size_t i = 0; i < x.size(); ++i) {
-        x[i] = static_cast<double>(i);
-    }
-    matplot::plot(x, time_domain_signal);
-    matplot::title("Time-Domain Signal (Inverse DFT)");
-    matplot::xlabel("Sample Index");
-    matplot::ylabel("Amplitude");
-    matplot::show();
-}
-
-std::vector<double> magnitude(const std::vector<std::complex<double>>& vec) {
-    std::vector<double> mag;
-    for (const auto& val : vec) {
-        mag.push_back(std::abs(val));
-    }
-    return mag;
-}
-
-void plot_dft(const wave& input_wave) {
-    std::vector<std::complex<double>> dft_result = DFT(input_wave);
-    std::vector<double> dft_magnitude = magnitude(dft_result);
-    std::vector<double> dft_freq;
-    int N = dft_result.size();
-    for (int k = 0; k < N; ++k) {
-        dft_freq.push_back(static_cast<double>(k) / N);
-    }
-    matplot::plot(dft_freq, dft_magnitude);
-    matplot::title("Magnitude of DFT Coefficients");
-    matplot::xlabel("Normalized Frequency");
-    matplot::ylabel("Magnitude");
-    matplot::show();
-}
-
-void plot_sinus( double frequency) {
-    wave sine = sinus(frequency);
+void plot(wave input_wave) {
     matplot::ylabel("amplituda");
-    matplot::title("Sygna³ sinusoidalny");
-    matplot::plot(sine.x, sine.y)->color({ 1.0f, 0.08f, 0.58f });
+    matplot::title(input_wave.name);
+    matplot::plot(input_wave.x, input_wave.y)->color({ 1.0f, 0.08f, 0.58f });
     matplot::show();
 }
 
-void plot_cosinus(double frequency) {
-    wave cosine = cosinus(frequency);
-    matplot::ylabel("amplituda");
-    matplot::title("Sygna³ cosinusoidalny");
-    matplot::plot(cosine.x, cosine.y)->color({ 1.0f, 0.08f, 0.58f });;
-    matplot::show();
-}
-
-void plot_sawtooth(int f, int fs, int num_periods) {
-    wave saw = sawtooth(f, fs, num_periods);
-    matplot::plot(saw.x, saw.y)->color({ 1.0f, 0.08f, 0.58f });
-    matplot::xlabel("nr próbki");
-    matplot::ylabel("amplituda");
-    matplot::title("Sygna³ pi³okszta³tny");
-    matplot::show();
-}
-
-void plot_square(int f, int fs, int num_periods) {
-    wave sq = square(f, fs, num_periods);
-    matplot::plot(sq.x, sq.y)->color({ 1.0f, 0.08f, 0.58f });
-    matplot::xlabel("nr próbki");
-    matplot::ylabel("amplituda");
-    matplot::title("Sygna³ prostok¹tny");
-    matplot::show();
-}
 
 void visualize_audio(const std::string& audioFilePath) {
     AudioFile<double> audioFile;
@@ -193,10 +142,6 @@ wave add_noise(const wave& input_wave, double noise_level) {
     for (auto& sample : noisy_wave.y) {
         sample += d(gen);
     }
-    matplot::ylabel("amplituda");
-    matplot::title("Sygna³");
-    matplot::plot(noisy_wave.x, noisy_wave.y)->color({ 1.0f, 0.08f, 0.58f });
-    matplot::show();
     return noisy_wave;
 }
 
@@ -231,20 +176,16 @@ PYBIND11_MODULE(cmake_example, m) {
     py::class_<wave>(m, "wave")
         .def(py::init<>())
         .def_readwrite("x", &wave::x)
-        .def_readwrite("y", &wave::y);
+        .def_readwrite("y", &wave::y)
+        .def_readwrite("name", &wave::name);
 
-    m.def("plot_sin", &plot_sinus, "sinus(x)");
-    m.def("plot_cos", &plot_cosinus, "cosinus(x)");
     m.def("visualize", &visualize_audio, "visualisation");
-    m.def("plot_sawtooth", &plot_sawtooth, "plot_sawtooth");
-    m.def("plot_square", &plot_square, "square");
     m.def("sawtooth", &sawtooth, "sawtooth");
     m.def("square", &square, "square");
     m.def("sin", &sinus, "sinus(x)");
     m.def("cos", &cosinus, "cosinus(x)");
-    m.def("dft", &plot_dft, "dft");
-    m.def("idft", &plot_idft, "idft");
     m.def("DFT", &DFT, "DFT");
+    m.def("IDFT", &IDFT, "IDFT");
     m.def("noise", &add_noise, "noise");
     m.def("noise_audio", &add_noise_to_audio, "adding noise to audio");
 }
