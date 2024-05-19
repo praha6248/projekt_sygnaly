@@ -63,8 +63,9 @@ wave square(double frequency, double amplitude, double sampling_rate, double dur
     return square;
 }
 
-wave DFT(const wave& input_wave) {
+wave DFT( wave input_wave) {
     wave output_wave = input_wave;
+    output_wave.name += " after IDFT";
     int N = input_wave.y.size();
     output_wave.X.resize(N);
     output_wave.y.resize(N);
@@ -80,8 +81,9 @@ wave DFT(const wave& input_wave) {
     return output_wave;
 }
 
-wave IDFT(const wave& input_wave) {
+wave IDFT( wave input_wave) {
     wave output_wave = input_wave;
+    output_wave.name += " after IDFT";
     int N = input_wave.X.size();
     output_wave.y.resize(N);
     for (int n = 0; n < N; ++n) {
@@ -95,15 +97,14 @@ wave IDFT(const wave& input_wave) {
     return output_wave;
 }
 
-void plot(const wave& input_wave) {
-    matplot::ylabel("amplituda");
+void plot( wave input_wave) {
     matplot::title(input_wave.name);
     matplot::plot(input_wave.x, input_wave.y)->color({ 1.0f, 0.08f, 0.58f });
     matplot::show();
 }
 
 
-wave audio_to_wave(const std::string& audioFilePath) {
+wave audio_to_wave( std::string audioFilePath) {
     AudioFile<double> audioFile;
     wave audio("audio");
     bool load = audioFile.load(audioFilePath);
@@ -127,7 +128,7 @@ wave audio_to_wave(const std::string& audioFilePath) {
     return audio;
 }
 
-wave add_noise(const wave& input_wave, double noise_level) {
+wave add_noise(wave input_wave, double noise_level) {
     wave noisy_wave = input_wave;
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -138,7 +139,7 @@ wave add_noise(const wave& input_wave, double noise_level) {
     return noisy_wave;
 }
 
-void wave_to_audio(const wave& input_wave, const std::string& output_audio_path) {
+void wave_to_audio(wave input_wave, std::string output_audio_path) {
     AudioFile<double> audio_file;
     audio_file.setSampleRate(44100);
     audio_file.setAudioBufferSize(1, input_wave.x.size());
