@@ -15,6 +15,7 @@
 struct wave {
     std::vector<double>x;
     std::vector<double>y;
+    std::vector<std::complex<double>> X;
     std::string name;
     wave(const std::string& name) : name(name) {}
     wave() : name("wave") {}
@@ -67,43 +68,43 @@ wave square(int f, int fs, int num_periods) {
 }
 
 wave DFT(const wave& input_wave) {
+    wave output_wave = input_wave;
     int N = input_wave.y.size();
-    wave output_wave("DFT"+input_wave.name);
-    output_wave.x = input_wave.x;
+    output_wave.X.resize(N);
     output_wave.y.resize(N);
-    std::vector<std::complex<double>> X(N);
     for (int k = 0; k < N; ++k) {
-        std::complex<double> sum = 0.0;
+        std::complex<double> sum(0.0, 0.0);
         for (int n = 0; n < N; ++n) {
-            double angle = -2 * M_PI * k * n / N;
-            sum += input_wave.y[n] * std::exp(std::complex<double>(0, angle));
+            double angle = -2.0 * M_PI * k * n / N;
+            sum += input_wave.y[n] * std::complex<double>(std::cos(angle), std::sin(angle));
         }
-        X[k] = sum;
+        output_wave.X[k] = sum;
         output_wave.y[k] = std::abs(sum);
     }
     return output_wave;
 }
 
 wave IDFT(const wave& input_wave) {
-    int N = input_wave.y.size();
-    wave output_wave("IDFT");
-    output_wave.x.resize(N);
+    wave output_wave = input_wave;
+    int N = input_wave.X.size();
     output_wave.y.resize(N);
-
     for (int n = 0; n < N; ++n) {
-        std::complex<double> sum = 0.0;
+        std::complex<double> sum(0.0, 0.0);
         for (int k = 0; k < N; ++k) {
-            double angle = 2 * M_PI * k * n / N;
-            sum += std::complex<double>(input_wave.y[k]) * std::exp(std::complex<double>(0, angle));
+            double angle = 2.0 * M_PI * k * n / N;
+            sum += input_wave.X[k] * std::complex<double>(std::cos(angle), std::sin(angle));
         }
-        output_wave.x[n] = input_wave.x[n];
         output_wave.y[n] = std::real(sum) / N;
     }
-
+    std::vector<double> x_axis(N);
+    for (size_t i = 0; i < x_axis.size(); ++i) {
+        x_axis[i] = static_cast<double>(i);
+    }
+    output_wave.x = x_axis;
     return output_wave;
 }
 
-void plot(wave input_wave) {
+void plot(const wave& input_wave) {
     matplot::ylabel("amplituda");
     matplot::title(input_wave.name);
     matplot::plot(input_wave.x, input_wave.y)->color({ 1.0f, 0.08f, 0.58f });
@@ -111,27 +112,28 @@ void plot(wave input_wave) {
 }
 
 
-void visualize_audio(const std::string& audioFilePath) {
+wave audio_to_wave(const std::string& audioFilePath) {
     AudioFile<double> audioFile;
+    wave audio("audio");
     bool load = audioFile.load(audioFilePath);
     if (!load) {
         std::cerr << "Audio is not loaded" << std::endl;
-        return;
+        return audio;
     }
     int samples = audioFile.getNumSamplesPerChannel();
     int channels = audioFile.getNumChannels();
     if (samples <= 0) {
         std::cerr << "audio has no samples" << std::endl;
-        return;
+        return audio;
     }
     std::vector<double> audioData(audioFile.samples[0].begin(), audioFile.samples[0].end());
     std::vector<double> x(samples);
     for (int i = 0; i < samples; ++i) {
         x[i] = static_cast<double>(i) / audioFile.getSampleRate();
     }
-    matplot::plot(x, audioData)->color({ 1.0f, 0.08f, 0.58f });;
-    matplot::title("Sygna³ Audio");
-    matplot::show();
+    audio.x = x;
+    audio.y = audioData;
+    return audio;
 }
 
 wave add_noise(const wave& input_wave, double noise_level) {
@@ -145,29 +147,12 @@ wave add_noise(const wave& input_wave, double noise_level) {
     return noisy_wave;
 }
 
-void add_noise_to_audio(const std::string& inputAudioPath, const std::string& outputAudioPath, double noise_level) {
-    AudioFile<double> audioFile;
-    if (!audioFile.load(inputAudioPath)) {
-        std::cerr << "Error loading audio file: " << inputAudioPath << std::endl;
-        return;
-    }
-
-    int numSamples = audioFile.getNumSamplesPerChannel();
-    int numChannels = audioFile.getNumChannels();
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::normal_distribution<> d(0, noise_level);
-
-    for (int channel = 0; channel < numChannels; ++channel) {
-        for (int i = 0; i < numSamples; ++i) {
-            audioFile.samples[channel][i] += d(gen);
-        }
-    }
-
-    if (!audioFile.save(outputAudioPath)) {
-        std::cerr << "Error saving audio file: " << outputAudioPath << std::endl;
-    }
+void wave_to_audio(const wave& input_wave, const std::string& output_audio_path) {
+    AudioFile<double> audio_file;
+    audio_file.setSampleRate(44100);
+    audio_file.setAudioBufferSize(1, input_wave.x.size());
+    audio_file.samples[0] = input_wave.y;
+    audio_file.save(output_audio_path);
 }
 
 namespace py = pybind11;
@@ -179,7 +164,7 @@ PYBIND11_MODULE(cmake_example, m) {
         .def_readwrite("y", &wave::y)
         .def_readwrite("name", &wave::name);
 
-    m.def("visualize", &visualize_audio, "visualisation");
+    m.def("audio_to_wave", &audio_to_wave, "audio to wave");
     m.def("sawtooth", &sawtooth, "sawtooth");
     m.def("square", &square, "square");
     m.def("sin", &sinus, "sinus(x)");
@@ -187,5 +172,6 @@ PYBIND11_MODULE(cmake_example, m) {
     m.def("DFT", &DFT, "DFT");
     m.def("IDFT", &IDFT, "IDFT");
     m.def("noise", &add_noise, "noise");
-    m.def("noise_audio", &add_noise_to_audio, "adding noise to audio");
+    m.def("wave_to_audio", &wave_to_audio, "wave to audio");
+    m.def("plot", &plot, "plot");
 }
