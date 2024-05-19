@@ -5,6 +5,12 @@
 #include "AudioFile.h"
 #include <vector>
 #include <cmath>
+#include <random>
+
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 struct wave {
     std::vector<double>x;
@@ -63,20 +69,21 @@ std::vector<std::complex<double>> DFT(const wave& input_wave) {
     for (int k = 0; k < N; ++k) {
         std::complex<double> sum = 0.0;
         for (int n = 0; n < N; ++n) {
-            double angle = -2 * 3.14 * k * n / N;
-            sum += input_wave.y[n] * std::complex<double>(std::cos(angle), std::sin(angle));
+            double angle = -2 * M_PI * k * n / N;
+            sum += input_wave.y[n] * std::exp(std::complex<double>(0, angle));
         }
         X[k] = sum;
     }
     return X;
 }
-std::vector<double> idft(const std::vector<std::complex<double>>& X) {
+
+std::vector<double> IDFT(const std::vector<std::complex<double>>& X) {
     int N = X.size();
     std::vector<double> x(N);
     for (int n = 0; n < N; ++n) {
         std::complex<double> sum = 0.0;
         for (int k = 0; k < N; ++k) {
-            double angle = 2 * 3.14 * k * n / N;
+            double angle = 2 * M_PI * k * n / N;
             sum += X[k] * std::exp(std::complex<double>(0, angle));
         }
         x[n] = std::real(sum) / N;
@@ -86,7 +93,7 @@ std::vector<double> idft(const std::vector<std::complex<double>>& X) {
 }
 
 void plot_idft(const std::vector<std::complex<double>>& X) {
-    std::vector<double> time_domain_signal = idft(X);
+    std::vector<double> time_domain_signal = IDFT(X);
     std::vector<double> x(time_domain_signal.size());
     for (size_t i = 0; i < x.size(); ++i) {
         x[i] = static_cast<double>(i);
@@ -178,6 +185,46 @@ void visualize_audio(const std::string& audioFilePath) {
     matplot::show();
 }
 
+wave add_noise(const wave& input_wave, double noise_level) {
+    wave noisy_wave = input_wave;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::normal_distribution<> d(0, noise_level);
+    for (auto& sample : noisy_wave.y) {
+        sample += d(gen);
+    }
+    matplot::ylabel("amplituda");
+    matplot::title("Sygna³");
+    matplot::plot(noisy_wave.x, noisy_wave.y)->color({ 1.0f, 0.08f, 0.58f });
+    matplot::show();
+    return noisy_wave;
+}
+
+void add_noise_to_audio(const std::string& inputAudioPath, const std::string& outputAudioPath, double noise_level) {
+    AudioFile<double> audioFile;
+    if (!audioFile.load(inputAudioPath)) {
+        std::cerr << "Error loading audio file: " << inputAudioPath << std::endl;
+        return;
+    }
+
+    int numSamples = audioFile.getNumSamplesPerChannel();
+    int numChannels = audioFile.getNumChannels();
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::normal_distribution<> d(0, noise_level);
+
+    for (int channel = 0; channel < numChannels; ++channel) {
+        for (int i = 0; i < numSamples; ++i) {
+            audioFile.samples[channel][i] += d(gen);
+        }
+    }
+
+    if (!audioFile.save(outputAudioPath)) {
+        std::cerr << "Error saving audio file: " << outputAudioPath << std::endl;
+    }
+}
+
 namespace py = pybind11;
 
 PYBIND11_MODULE(cmake_example, m) {
@@ -198,4 +245,6 @@ PYBIND11_MODULE(cmake_example, m) {
     m.def("dft", &plot_dft, "dft");
     m.def("idft", &plot_idft, "idft");
     m.def("DFT", &DFT, "DFT");
+    m.def("noise", &add_noise, "noise");
+    m.def("noise_audio", &add_noise_to_audio, "adding noise to audio");
 }
