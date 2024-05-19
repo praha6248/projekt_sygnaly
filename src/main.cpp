@@ -1,6 +1,5 @@
 #include <pybind11/pybind11.h>
 #include <matplot/matplot.h>
-#include <pybind11/stl.h>
 #include <pybind11/complex.h>
 #include "AudioFile.h"
 #include <vector>
@@ -17,52 +16,49 @@ struct wave {
     std::vector<double>y;
     std::vector<std::complex<double>> X;
     std::string name;
-    wave(const std::string& name) : name(name) {}
-    wave() : name("wave") {}
+    wave(std::string name) : name(name), X(0) {}
+    wave() : name("wave"), X(0){}
 };
 
-wave sinus(double frequency) {
+wave sinus(double frequency, double amplitude, double sampling_rate, double duration) {
     wave sinus("sin");
-    for (int i = 0; i < 628; i++)
-    {
-        sinus.x.push_back(static_cast<double>(i) / 314);
-        sinus.y.push_back(std::sin(3.14 * frequency * sinus.x[i]));
+    int n_samples = static_cast<int>(sampling_rate * duration);
+    for (int i = 0; i < n_samples; ++i) {
+        double t = i / sampling_rate;
+        sinus.x.push_back(t);
+        sinus.y.push_back(amplitude * sin(2 * M_PI * frequency * t));
     }
     return sinus;
 }
-wave cosinus(double frequency) {
-    wave cosinus("cos");
-    for (int i = 0; i < 628; i++)
-    {
-        cosinus.x.push_back(static_cast<double>(i) / 314);
-        cosinus.y.push_back(std::cos(3.14 * frequency * cosinus.x[i]));
+wave cosinus(double frequency, double amplitude, double sampling_rate, double duration) {
+    wave cosine("cos");
+    int n_samples = static_cast<int>(sampling_rate * duration);
+    for (int i = 0; i < n_samples; ++i) {
+        double t = i / sampling_rate;
+        cosine.x.push_back(t);
+        cosine.y.push_back(amplitude * cos(2 * M_PI * frequency * t));
     }
-    return cosinus;
+    return cosine;
 }
 
-wave sawtooth(int f, int fs, int num_periods) {
+wave sawtooth(double frequency, double amplitude, double sampling_rate, double duration) {
     wave sawtooth("sawtooth");
-    double step = (2.0 * 32768) / (fs * f);
-    double amplitude = 0;
-    for (int p = 0; p < num_periods; ++p) {
-        for (int i = 0; i < fs; ++i) {
-            sawtooth.x.push_back(static_cast<double>(i + p * fs) / fs);
-            sawtooth.y.push_back(amplitude);
-            amplitude += step;
-            if (amplitude >= 32768)
-                amplitude -= 65536;
-        }
+    int n_samples = static_cast<int>(sampling_rate * duration);
+    for (int i = 0; i < n_samples; ++i) {
+        double t = i / sampling_rate;
+        sawtooth.x.push_back(t);
+        sawtooth.y.push_back(amplitude * (2 * (t * frequency - floor(t * frequency + 0.5))));
     }
     return sawtooth;
 }
 
-wave square(int f, int fs, int num_periods) {
+wave square(double frequency, double amplitude, double sampling_rate, double duration) {
     wave square("square");
-    for (int p = 0; p < num_periods; ++p) {
-        for (int i = 0; i < fs; ++i) {
-            square.x.push_back(static_cast<double>(i + p * fs) / fs);
-            square.y.push_back(i < fs / 2 ? -32768 : 32768);
-        }
+    int n_samples = static_cast<int>(sampling_rate * duration);
+    for (int i = 0; i < n_samples; ++i) {
+        double t = i / sampling_rate;
+        square.x.push_back(t);
+        square.y.push_back(amplitude * (sin(2 * M_PI * frequency * t) >= 0 ? 1 : -1));
     }
     return square;
 }
