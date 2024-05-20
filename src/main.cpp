@@ -65,7 +65,7 @@ wave square(double frequency, double amplitude, double sampling_rate, double dur
 
 wave DFT( wave input_wave) {
     wave output_wave = input_wave;
-    output_wave.name += " after IDFT";
+    output_wave.name += " after DFT";
     int N = input_wave.y.size();
     output_wave.X.resize(N);
     output_wave.y.resize(N);
