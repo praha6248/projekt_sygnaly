@@ -97,7 +97,7 @@ wave IDFT( wave input_wave) {
     return output_wave;
 }
 
-void plot( wave input_wave) {
+void plot(wave input_wave) {
     matplot::title(input_wave.name);
     matplot::plot(input_wave.x, input_wave.y)->color({ 1.0f, 0.08f, 0.58f });
     matplot::show();
